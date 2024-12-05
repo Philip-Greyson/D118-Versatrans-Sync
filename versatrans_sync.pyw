@@ -23,7 +23,7 @@ SFTP_UN = os.environ.get('VERSATRANS_SFTP_USERNAME')  # username for the SFTP up
 SFTP_PW = os.environ.get('VERSATRANS_SFTP_PASSWORD')
 SFTP_HOST = os.environ.get('VERSATRANS_SFTP_ADDRESS')  # server address for the SFTP upload, in our case its a powerschool.com subdomain
 CNOPTS = pysftp.CnOpts(knownhosts='known_hosts')  # connection options to use the known_hosts file for key validation
-SFTP_PATH = 'Wauconda Community Unit School District 118, IL'  # remote path on the SFTP server that files will be placed in
+SFTP_PATH = 'Wauconda Community Unit School District 118-IL'  # remote path on the SFTP server that files will be placed in
 
 print(f'DB Username: {DB_UN} | DB Password: {DB_PW} | DB Server: {DB_CS}')  # debug so we can see where oracle is trying to connect to/with
 print(f'SFTP Username: {SFTP_UN} | SFTP Server: {SFTP_HOST}')  # debug so we can see what info sftp connection is using
@@ -91,27 +91,27 @@ if __name__ == '__main__':  # main file execution
                     print(f'INFO: Connection successfully established to PowerSchool at {DB_CS} on version {con.version}')
                     print(f'INFO: Connection successfully established to PowerSchool at {DB_CS} on version {con.version}', file=log)
                     with con.cursor() as cur:  # start an entry
-                        cur.execute('SELECT s.dcid, s.id, s.student_number, s.enroll_status, s.first_name, s.last_name, s.middle_name, s.grade_level, s.schoolid, s.mailing_street, s.mailing_city, s.mailing_state, s.mailing_zip, s.gender, s.dob, s.home_phone, ext.tran_babysitter_address, ext.tran_babysitter_city, ext.tran_babysitter_state, ext.tran_babysitter_zip, ext.tran_babysitter_friday_address, ext.tran_babysitter_friday_city, ext.tran_babysitter_friday_state, ext.tran_babysitter_friday_zip, ext.tran_babysitter_friday_name, ext.tran_babysitter_friday_phone FROM students s LEFT JOIN u_def_ext_students0 ext ON s.dcid = ext.studentsdcid WHERE s.schoolid != 999999')
+                        cur.execute('SELECT s.dcid, s.id, s.student_number, s.enroll_status, s.first_name, s.last_name, s.middle_name, s.grade_level, s.schoolid, s.mailing_street, s.mailing_city, s.mailing_state, s.mailing_zip, s.gender, s.dob, s.home_phone, ext.tran_babysitter_address, ext.tran_babysitter_city, ext.tran_babysitter_state, ext.tran_babysitter_zip, ext.tran_babysitter_friday_address, ext.tran_babysitter_friday_city, ext.tran_babysitter_friday_state, ext.tran_babysitter_friday_zip, ext.tran_babysitter_friday_name, ext.tran_babysitter_friday_phone FROM students s LEFT JOIN u_def_ext_students0 ext ON s.dcid = ext.studentsdcid WHERE s.schoolid != 999999 AND s.enroll_status = 0')
                         students = cur.fetchall()
                         for student in students:
                             try:
                                 finalOutputString = None # string to store the final output for each student
                                 stuDCID = student[0]
                                 stuID = student[1]
-                                stuNum = student[2]
+                                stuNum = str(int(student[2]))
                                 stuActive = True if student[3] == 0 else False
-                                stuFirst = student[4]
-                                stuLast = student[5]
-                                stuMiddle = student[6]
-                                grade = int(student[7])
-                                schoolCode = int(student[8])
-                                homeAddress = str(student[9])
-                                homeCity = str(student[10])
-                                homeState = str(student[11])
-                                homeZip = str(student[12])
-                                gender = student[13]
-                                birthdate = student[14].strftime('%m/%d/%Y')
-                                homePhone = student[15]
+                                stuFirst = student[4] if student[4] else ''
+                                stuLast = student[5] if student[5] else ''
+                                stuMiddle = student[6] if student[6] else ''  # leave blank if no middle name
+                                grade = int(student[7]) if student[7] else ''
+                                schoolCode = int(student[8]) if student[8] else ''
+                                homeAddress = str(student[9]) if student[9] else ''
+                                homeCity = str(student[10]) if student[10] else ''
+                                homeState = str(student[11]) if student[11] else ''
+                                homeZip = str(student[12]) if student[12] else ''
+                                gender = student[13] if student[13] else ''
+                                birthdate = student[14].strftime('%m/%d/%Y') if student[14] else ''
+                                homePhone = student[15] if student[15] else ''
                                 # print(stuDCID)
                                 if DO_BASIC_INFO:
                                     print(f'DBUG: Starting Basic Info section for student {stuNum}, DCID {stuDCID}')
@@ -121,10 +121,10 @@ if __name__ == '__main__':  # main file execution
                                 if DO_PICKUP_DROPOFF:
                                     print(f'DBUG: Starting Pickup/Dropoff section for student {stuNum}, DCID {stuDCID}')
                                     print(f'DBUG: Starting Pickup/Dropoff section for student {stuNum}, DCID {stuDCID}', file=log)
-                                    pickupAddress = student[16]
-                                    pickupCity = student[17]
-                                    pickupState = student[18]
-                                    pickupZip = student[19]
+                                    pickupAddress = student[16] if student[16] else ''
+                                    pickupCity = student[17] if student[17] else ''
+                                    pickupState = student[18] if student[18] else ''
+                                    pickupZip = student[19] if student[19] else ''
                                     # we dont currently have data for dropoff addresses so leave them blank
                                     dropoffAddress = ''
                                     dropoffCity = ''
@@ -145,8 +145,8 @@ if __name__ == '__main__':  # main file execution
                                             lengthWithoutExpired = len(entries)  # variable to count how many actual entries we have if we ignore expired medical alerts
                                             specialInstructions = ''
                                             specialInfo = ''
-                                            noAdult = 0
-                                            divorce = ''
+                                            noAdult = 'No'
+                                            divorce = 'No'
                                             iep = ''
                                             bip = ''
                                             fiveOFour = ''
@@ -158,8 +158,8 @@ if __name__ == '__main__':  # main file execution
                                                         continue  # skip the current entry so expired alerts are not added to the output
                                                 newSpecialInstructions = str(entries[i][0]) if entries[i][0] else ''
                                                 newSpecialInfo = str(entries[i][1]) if entries[i][1] else ''
-                                                newNoAdult = entries[i][2]
-                                                newDivorce = str(entries[i][3]) if entries[i][3] else ''
+                                                newNoAdult = 'Yes' if entries[i][2] == 1 else 'No'
+                                                newDivorce = 'Yes' if entries[i][3] == 1 else 'No'
                                                 newIep = str(entries[i][4]) if entries[i][4] else ''
                                                 newBip = str(entries[i][5]) if entries[i][5] else ''
                                                 newFiveOFour = str(entries[i][6]) if entries[i][6] else ''
@@ -187,22 +187,22 @@ if __name__ == '__main__':  # main file execution
                                         else:
                                             specialInstructions = str(entries[0][0]) if entries[0][0] else ''
                                             specialInfo = str(entries[0][1]) if entries[0][1] else ''
-                                            noAdult = entries[0][2]
-                                            divorce = str(entries[0][3]) if entries[0][3] else ''
+                                            noAdult = 'Yes' if entries[0][2] == 1 else 'No'
+                                            divorce = 'Yes' if entries[0][3] == 1 else 'No'
                                             iep = str(entries[0][4]) if entries[0][4] else ''
                                             bip = str(entries[0][5]) if entries[0][5] else ''
                                             fiveOFour = str(entries[0][6]) if entries[0][6] else ''
                                             medical = str(entries[0][7]) if entries[0][7] else ''
                                         # do replacement of text formatting that may be in the entries and breaks output
-                                        specialInstructions = specialInstructions.replace('\r\n', ';').replace('\n', ';').replace('\t', '')  # replace any LF or CRLF line breaks with a semicolon, replace any tabs with a space
-                                        specialInfo = specialInfo.replace('\r\n', ';').replace('\n', ';').replace('\t', '')
-                                        divorce = divorce.replace('\r\n', ';').replace('\n', ';').replace('\t', '')
-                                        iep = iep.replace('\r\n', ';').replace('\n', ';').replace('\t', '')                                   
-                                        bip = bip.replace('\r\n', ';').replace('\n', ';').replace('\t', '')
-                                        fiveOFour = fiveOFour.replace('\r\n', ';').replace('\n', ';').replace('\t', '')
-                                        medical = medical.replace('\r\n', ';').replace('\n', ';').replace('\t', '')
+                                        specialInstructions = specialInstructions.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')  # replace any LF or CRLF line breaks with a semicolon, replace any tabs with a space, double quotes with single
+                                        specialInfo = specialInfo.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
+                                        divorce = divorce.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
+                                        iep = iep.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')                               
+                                        bip = bip.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
+                                        fiveOFour = fiveOFour.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
+                                        medical = medical.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
 
-                                        accomodationOutputString = f'"{specialInstructions}"\t"{specialInfo}"\t{noAdult}\t"{divorce}"\t"{iep}"\t"{bip}"\t"{fiveOFour}"\t"{medical}"'
+                                        accomodationOutputString = f'"{specialInstructions}"\t"{specialInfo}"\t{noAdult}\t{divorce}\t"{iep}"\t"{bip}"\t"{fiveOFour}"\t"{medical}"'
                                         # print(accomodationOutputString)  # debug
                                         if finalOutputString:  # if there is already something in the final output, append this section
                                             finalOutputString = f'{finalOutputString}\t{accomodationOutputString}'
@@ -214,12 +214,12 @@ if __name__ == '__main__':  # main file execution
                                 if DO_FRIDAY_CHILDCARE:
                                     print(f'DBUG: Starting Friday Childcare section for student {stuNum}, DCID {stuDCID}')
                                     print(f'DBUG: Starting Friday Childcare section for student {stuNum}, DCID {stuDCID}', file=log)
-                                    fridayAddress = student[20] if student[20] else ''
-                                    fridayCity = student[21] if student[21] else ''
-                                    fridayState = student[22] if student[22] else ''
-                                    fridayZip = student[23] if student[23] else ''
-                                    fridayName = student[24] if student[24] else ''
-                                    fridayPhone = student[25] if student[25] else ''
+                                    fridayAddress = student[20] if (student[20] and student[20] != 'None Listed') else ''
+                                    fridayCity = student[21] if (student[21] and student[21] != 'None Listed') else ''
+                                    fridayState = student[22] if (student[22] and student[22] != 'None Listed') else ''
+                                    fridayZip = student[23] if (student[23] and student[23] != 'None Listed') else ''
+                                    fridayName = student[24] if (student[24] and student[24] != 'None Listed') else ''
+                                    fridayPhone = student[25] if (student[25] and student[25] != 'None Listed') else ''
                                     fridayOutputString = f'{fridayAddress}\t{fridayCity}\t{fridayState}\t{fridayZip}\t{fridayName}\t{fridayPhone}'
                                     if finalOutputString:  # if there is already something in the final output, append this section
                                         finalOutputString = f'{finalOutputString}\t{fridayOutputString}'
@@ -247,8 +247,8 @@ if __name__ == '__main__':  # main file execution
                                             for i in range(maxContacts):  # go through the amount of entries that we are looking for
                                                 try:
                                                     # print(contacts[i])  # debug
-                                                    contactName = f'{contacts[i][1]} {contacts[i][2]}'
-                                                    contactRelationship = contacts[i][3]
+                                                    contactName = f'{contacts[i][1]} {contacts[i][2]}' if (contacts[i][1] or contacts[i][2]) else ''  # if there is no name in either first or last just output a blank
+                                                    contactRelationship = contacts[i][3] if (contacts[i][3] and contacts[i][3] != "Not Set") else ''  # if there is no relationship type output a blank
                                                     contactID = contacts[i][9]
                                                     phoneNum = None  # reset to null for each contact
                                                     preferredPhone = False # flag to know if we have a preferred phone number stored
@@ -283,7 +283,7 @@ if __name__ == '__main__':  # main file execution
                                                             print(f'ERROR while finding best phone number for contact #{contacts[i][0]} of student {stuNum}: {er}')
                                                             print(f'ERROR while finding best phone number for contact #{contacts[i][0]} of student {stuNum}: {er}', file=log)
                                                     else:
-                                                        phoneNum = 'None Listed'  # if they did not have any phone numbers listed for their contact, just output saying as much
+                                                        phoneNum = ''  # if they did not have any phone numbers listed for their contact, just output a blank
                                                     # print(f'DBUG: Phone number for contact {contactName} is {phoneNum}')  # debug
                                                     contactNames.append(contactName)
                                                     contactRelationships.append(contactRelationship)
