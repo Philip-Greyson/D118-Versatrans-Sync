@@ -28,7 +28,7 @@ SFTP_PATH = 'Wauconda Community Unit School District 118-IL'  # remote path on t
 print(f'DB Username: {DB_UN} | DB Password: {DB_PW} | DB Server: {DB_CS}')  # debug so we can see where oracle is trying to connect to/with
 print(f'SFTP Username: {SFTP_UN} | SFTP Server: {SFTP_HOST}')  # debug so we can see what info sftp connection is using
 
-OUTPUT_FILENAME = 'd118_students.csv'
+OUTPUT_FILENAME = 'd118_students.txt'
 
 # DEFINE WHAT PARTS OF THE INFO WE WANT TO SEND. USEFUL FOR TESTING, CUSTOMIZING, ETC
 
@@ -39,8 +39,8 @@ DO_PICKUP_DROPOFF = True
 PICKUP_DROPOFF_HEADER = 'Pickup Street Address\tPickup City\tPickup State\tPickup Zip\tDropoff Street Address\tDropoff City\tDropoff State\tDropoff Zip'
 
 DO_EMERGENCY_CONTACTS = True
-EMERGENCY_CONTACTS_NUM = 6
-EMERGENCY_CONTACTS_HEADER = 'Emergency Contact # Name\tEmergency Contact # Relationship\tEmergency Contact # Phone Number'
+EMERGENCY_CONTACTS_NUM = 6  # define how many emergency contacts we will export. Header will be automatically generated
+EMERGENCY_CONTACTS_HEADER = 'Emergency Contact # Name\tEmergency Contact # Relationship\tEmergency Contact # Phone Number'  # header for one entry of emergency contacts. the number signs will get the relevant digit inserted by the construct_header function and will be duplicated the number defined above
 
 DO_AUTHORIZED_ADULTS = True
 AUTHORIZED_ADULTS_NUM = 6
@@ -71,7 +71,7 @@ if __name__ == '__main__':  # main file execution
         startTime = datetime.now()
         print(f'INFO: Execution started at {startTime}')
         print(f'INFO: Execution started at {startTime}', file=log)
-        with open(OUTPUT_FILENAME, 'w') as output:
+        with open(OUTPUT_FILENAME, 'w', encoding='utf-8') as output:
             headerString = ''  # start with an empty string for the header
             if DO_BASIC_INFO:
                 headerString = construct_header(headerString, BASIC_INFO_HEADER)
@@ -360,7 +360,7 @@ if __name__ == '__main__':  # main file execution
                                     except Exception as er:
                                         print(f'ERROR while getting authorized atdults for student {stuNum}: {er}')
                                         print(f'ERROR while getting authorized atdults for student {stuNum}: {er}', file=log)
-                                print(finalOutputString)  # debug
+                                # print(finalOutputString)  # debug
                                 print(finalOutputString, file=output)
                             except Exception as er:
                                 print(f'ERROR while processing student {student[2]}: {er}')
@@ -377,7 +377,7 @@ if __name__ == '__main__':  # main file execution
                 sftp.chdir(SFTP_PATH)  # change to the specified folder/path
                 # print(sftp.pwd) # debug, make sure out changedir worked
                 # print(sftp.listdir())
-                sftp.put(OUTPUT_FILENAME)  # upload the first file onto the sftp server
+                # sftp.put(OUTPUT_FILENAME)  # upload the first file onto the sftp server
                 print("INFO: Student file placed on remote server")
                 print("INFO: Student file placed on remote server", file=log)
         except Exception as er:
