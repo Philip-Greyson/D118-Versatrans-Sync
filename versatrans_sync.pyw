@@ -26,14 +26,14 @@ CNOPTS = pysftp.CnOpts(knownhosts='known_hosts')  # connection options to use th
 SFTP_PATH = 'Wauconda Community Unit School District 118-IL'  # remote path on the SFTP server that files will be placed in
 
 print(f'DB Username: {DB_UN} | DB Password: {DB_PW} | DB Server: {DB_CS}')  # debug so we can see where oracle is trying to connect to/with
-print(f'SFTP Username: {SFTP_UN} | SFTP Server: {SFTP_HOST}')  # debug so we can see what info sftp connection is using
+print(f'SFTP Username: {SFTP_UN} | SFTP Password: {SFTP_PW} | SFTP Server: {SFTP_HOST}')  # debug so we can see what info sftp connection is using
 
 OUTPUT_FILENAME = 'd118_students.txt'
 
 # DEFINE WHAT PARTS OF THE INFO WE WANT TO SEND. USEFUL FOR TESTING, CUSTOMIZING, ETC
 
 DO_BASIC_INFO = True
-BASIC_INFO_HEADER = 'Student ID\tActive\tFamily ID\tLast Name\tFirstName\tMiddleName\tGrade\tSchool\tProgram Code\tHomeStreetAddress\tHome Apt. Number\tHomeCity\tHomeState\tHomeZip\tGender\tBirthdate\tHome Phone'
+BASIC_INFO_HEADER = 'Student ID\tActive\tFamily ID\tLast Name\tFirstName\tMiddleName\tGrade\tSchool\tProgram Code\tHomeStreetAddress\tHome Apt. Number\tHomeCity\tHomeState\tHomeZip\tGender\tBirthdate\tHome Phone\tAM or PM'
 
 DO_PICKUP_DROPOFF = True
 PICKUP_DROPOFF_HEADER = 'Pickup Street Address\tPickup City\tPickup State\tPickup Zip\tDropoff Street Address\tDropoff City\tDropoff State\tDropoff Zip'
@@ -51,6 +51,10 @@ FRIDAY_CHILDCARE_HEADER = 'Friday Childcare Provider Address\tFriday Childcare P
 
 DO_ACCOMODATIONS = True
 ACCOMODATIONS_HEADER = 'Special Instructions\tSpecial Transportation Info\tNo Adult Supervision\tDivorce Accomodations\tIEP Information\tBIP Information\t504 Information\tMedical Alert'
+
+# Define which course numbers are treated as AM or PM courses, for filling in the custom field for Pre-K and Ks
+AM_COURSES = ['WEEAM', 'ECHAM', 'HRKA']
+PM_COURSES = ['WEEPM', 'ECHPM', 'HRKP']
 
 def construct_header(existingHeader, newHeader, count=None) -> str:
     """Helper function to make a header string with variable amounts of entries."""
@@ -91,7 +95,7 @@ if __name__ == '__main__':  # main file execution
                     print(f'INFO: Connection successfully established to PowerSchool at {DB_CS} on version {con.version}')
                     print(f'INFO: Connection successfully established to PowerSchool at {DB_CS} on version {con.version}', file=log)
                     with con.cursor() as cur:  # start an entry
-                        cur.execute('SELECT s.dcid, s.id, s.student_number, s.enroll_status, s.first_name, s.last_name, s.middle_name, s.grade_level, s.schoolid, s.mailing_street, s.mailing_city, s.mailing_state, s.mailing_zip, s.gender, s.dob, s.home_phone, ext.tran_babysitter_address, ext.tran_babysitter_city, ext.tran_babysitter_state, ext.tran_babysitter_zip, ext.tran_babysitter_friday_address, ext.tran_babysitter_friday_city, ext.tran_babysitter_friday_state, ext.tran_babysitter_friday_zip, ext.tran_babysitter_friday_name, ext.tran_babysitter_friday_phone FROM students s LEFT JOIN u_def_ext_students0 ext ON s.dcid = ext.studentsdcid WHERE s.schoolid != 999999 AND s.enroll_status = 0')
+                        cur.execute('SELECT s.dcid, s.id, s.student_number, s.enroll_status, s.first_name, s.last_name, s.middle_name, s.grade_level, s.schoolid, s.mailing_street, s.mailing_city, s.mailing_state, s.mailing_zip, s.gender, s.dob, s.home_phone, ext.tran_babysitter_address, ext.tran_babysitter_city, ext.tran_babysitter_state, ext.tran_babysitter_zip, ext.tran_babysitter_friday_address, ext.tran_babysitter_friday_city, ext.tran_babysitter_friday_state, ext.tran_babysitter_friday_zip, ext.tran_babysitter_friday_name, ext.tran_babysitter_friday_phone FROM students s LEFT JOIN u_def_ext_students0 ext ON s.dcid = ext.studentsdcid WHERE s.schoolid != 999999 AND s.enroll_status = 0 ORDER BY s.grade_level')
                         students = cur.fetchall()
                         for student in students:
                             try:
@@ -103,7 +107,7 @@ if __name__ == '__main__':  # main file execution
                                 stuFirst = student[4] if student[4] else ''
                                 stuLast = student[5] if student[5] else ''
                                 stuMiddle = student[6] if student[6] else ''  # leave blank if no middle name
-                                grade = int(student[7]) if student[7] else ''
+                                grade = int(student[7])
                                 schoolCode = int(student[8]) if student[8] else ''
                                 homeAddress = str(student[9]) if student[9] else ''
                                 homeCity = str(student[10]) if student[10] else ''
@@ -112,11 +116,52 @@ if __name__ == '__main__':  # main file execution
                                 gender = student[13] if student[13] else ''
                                 birthdate = student[14].strftime('%m/%d/%Y') if student[14] else ''
                                 homePhone = student[15] if student[15] else ''
+                                AMorPM = ''  # reset to blank each student since most will not be only half days
                                 # print(stuDCID)
                                 if DO_BASIC_INFO:
                                     print(f'DBUG: Starting Basic Info section for student {stuNum}, DCID {stuDCID}')
                                     print(f'DBUG: Starting Basic Info section for student {stuNum}, DCID {stuDCID}', file=log)
-                                    basicOutputString = f'{stuNum}\t{stuActive}\t\t{stuLast}\t{stuFirst}\t{stuMiddle}\t{grade}\t{schoolCode}\t\t{homeAddress}\t\t{homeCity}\t{homeState}\t{homeZip}\t{gender}\t{birthdate}\t{homePhone}'
+                                    # find AM or PM for pre-k and kinders
+                                    if grade <= 0:
+                                        if grade == -1:  # convert the negative number into PK3 or PK4 for pre-kindergartener 3 or 4 year old
+                                            grade = 'PK4'
+                                        if grade == -2:
+                                            grade = 'PK3'
+                                        try:
+                                            today = datetime.now()
+											# get a list of terms for the school, filtering to only full years
+                                            cur.execute("SELECT id, firstday, lastday, schoolid, dcid FROM terms WHERE IsYearRec = 1 AND schoolid = :schoolid ORDER BY dcid DESC", schoolid=schoolCode)  # using bind variables as best practice https://python-oracledb.readthedocs.io/en/latest/user_guide/bind.html#bind
+                                            terms = cur.fetchall()
+                                            for term in terms:  # go through every term
+                                                termStart = term[1]
+                                                termEnd = term[2]
+                                                if ((termStart - timedelta(days = 21) < today) and (termEnd + timedelta(days = 60) > today)):  # compare todays date to the start and end dates with 3 week leeway before school so it populates before the first day of school. 2 month leeway at the end of the term should cover most of the summer
+                                                    termID = str(term[0])
+                                                    termDCID = str(term[4])
+                                                    # print(f'DBUG: {stuNum} has good term for school {schoolCode}: {termID} | {termDCID}')
+                                                    # print(f'DBUG: {stuNum} has good term for school {schoolCode}: {termID} | {termDCID}', file=log)
+                                        except Exception as er:
+                                            print(f'ERROR getting term for {stuNum} : {er}')
+                                            print(f'ERROR getting term for {stuNum} : {er}', file=log)
+                                        if termID:
+                                            cur.execute('SELECT cc.course_number, cc.teacherid, cc.sectionid, cc.expression, courses.course_name, courses.credittype FROM cc LEFT JOIN courses on cc.course_number = courses.course_number WHERE cc.termid = :term AND cc.studentid = :student', term = termID, student = stuID)
+                                            # cur.execute("SELECT course_number, teacherid, sectionid FROM cc WHERE studentid = :studentid AND termid = :term ORDER BY course_number", studentid=stuID, term=termID)
+                                            courses = cur.fetchall()
+                                            if courses:  # only overwrite the homeroom if there is actually data in the response (skips students with no enrollments)
+                                                for course in courses:
+                                                    # print(course)  # debug
+                                                    courseNum = str(course[0])  # course "numbers" are just text
+                                                    if courseNum in AM_COURSES:
+                                                        AMorPM = 'AM'
+                                                    elif courseNum in PM_COURSES:
+                                                        AMorPM = 'PM'
+                                                if AMorPM == '':  # if after going through the courses we still don't know if the kid is am or pm
+                                                    print(f'WARN: Could not determine if student {stuNum} in grade {grade} is AM or PM, check course enrollments and numbers')
+                                                    print(f'WARN: Could not determine if student {stuNum} in grade {grade} is AM or PM, check course enrollments and numbers', file=log)
+                                        else:  # if we did not find a valid term, just print out a warning
+                                            print(f'WARN: Could not find a valid term for todays date of {today}, skipping AM/PM for {stuNum}')
+                                            print(f'WARN: Could not find a valid term for todays date of {today}, skipping AM/PM for {stuNum}', file=log)
+                                    basicOutputString = f'{stuNum}\t{stuActive}\t\t{stuLast}\t{stuFirst}\t{stuMiddle}\t{grade}\t{schoolCode}\t\t{homeAddress}\t\t{homeCity}\t{homeState}\t{homeZip}\t{gender}\t{birthdate}\t{homePhone}\t{AMorPM}'
                                     finalOutputString = basicOutputString  # since basic info is first, the final output is always set to it if basic info is enabled
                                 if DO_PICKUP_DROPOFF:
                                     print(f'DBUG: Starting Pickup/Dropoff section for student {stuNum}, DCID {stuDCID}')
@@ -377,7 +422,7 @@ if __name__ == '__main__':  # main file execution
                 sftp.chdir(SFTP_PATH)  # change to the specified folder/path
                 # print(sftp.pwd) # debug, make sure out changedir worked
                 # print(sftp.listdir())
-                # sftp.put(OUTPUT_FILENAME)  # upload the first file onto the sftp server
+                sftp.put(OUTPUT_FILENAME)  # upload the first file onto the sftp server
                 print("INFO: Student file placed on remote server")
                 print("INFO: Student file placed on remote server", file=log)
         except Exception as er:
