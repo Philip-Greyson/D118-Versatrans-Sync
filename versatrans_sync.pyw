@@ -10,7 +10,9 @@ Needs pysftp: pip install pysftp --upgrade
 import datetime  # used to get current date for course info
 import os  # needed to get environement variables
 from datetime import *
+import re
 
+from bs4 import BeautifulSoup
 import oracledb  # used to connect to PowerSchool database
 import pysftp  # used to connect to the Versatrans SFTP server and upload the file
 
@@ -230,6 +232,7 @@ if __name__ == '__main__':  # main file execution
                                                 print(f'WARN: Student {stuNum} has multiple entries for their accomodations section, attempting to combine them but it may be inaccurate!', file=log)
                                             # print(entries, file=log)
                                         else:
+                                            # print(f'DBUG: Only one set of accomodations entries found for {stuNum}', file=log)
                                             specialInstructions = str(entries[0][0]) if entries[0][0] else ''
                                             specialInfo = str(entries[0][1]) if entries[0][1] else ''
                                             noAdult = 'Yes' if entries[0][2] == 1 else 'No'
@@ -238,14 +241,41 @@ if __name__ == '__main__':  # main file execution
                                             bip = str(entries[0][5]) if entries[0][5] else ''
                                             fiveOFour = str(entries[0][6]) if entries[0][6] else ''
                                             medical = str(entries[0][7]) if entries[0][7] else ''
-                                        # do replacement of text formatting that may be in the entries and breaks output
+
                                         specialInstructions = specialInstructions.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')  # replace any LF or CRLF line breaks with a semicolon, replace any tabs with a space, double quotes with single
                                         specialInfo = specialInfo.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         divorce = divorce.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         iep = iep.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')                               
                                         bip = bip.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         fiveOFour = fiveOFour.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
+
+                                        # we have to do a lot of processing on the medical alerts section since it usually has HTML code to embed a link in the alert. We need to strip this out to just plain text
+
+                                        if '< ' in medical:  # weirdly, sometimes the html tags have a space in them, if so we need to fix it so beautiful soup can process it correctly
+                                            # print(medical, file=log)  # debug to see what it was at the start
+                                            pattern = r"(?<=<)[ ]"  # match the first space after a <
+                                            medical= re.sub(pattern, "", medical)  # replace the space with no space
+                                            # print(medical, file=log)  # debug to see what it was after removing spaces
+                                        
+                                        medicalParts = medical.split('<', 1)  # split the string into a max of 2 parts on the first <
+                                        if len(medicalParts) > 1:  # if we actually split the string, meaning we had a html <, process the html to get the link
+                                            try:
+                                                medicalInfo = medicalParts[0]
+                                                medicalParts[1] = '<' + medicalParts[1]  # add back in the < that was used as a delimiter
+                                                medicalSoup = BeautifulSoup(medicalParts[1], 'html.parser')  # make a beautiful soup object that will parse the html in the secont part of the medical alert
+                                                medicalText = medicalSoup.get_text()
+                                                medicalLink = medicalSoup.a.get('href')  # get the href link from the first a object
+                                                # medicalPlan = f'To access action plan please open the following link: {medicalLink}'
+                                                medical = f'{medicalInfo} - {medicalText} - {medicalLink}'
+                                                # print(medical)
+                                                # print(medical, file=log)
+                                            except Exception as er:
+                                                print(f'ERROR while trying to get medical action plan link for student {stuNum}: {er}')
+                                                print(f'ERROR while trying to get medical action plan link for student {stuNum}: {er}', file=log)
+                                                print(medicalParts, file=log)
+
                                         medical = medical.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
+                                        # print(medical, file=log)  # debug to see what the final medical output string is
 
                                         accomodationOutputString = f'"{specialInstructions}"\t"{specialInfo}"\t{noAdult}\t{divorce}\t"{iep}"\t"{bip}"\t"{fiveOFour}"\t"{medical}"'
                                         # print(accomodationOutputString)  # debug
