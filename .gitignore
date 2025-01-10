@@ -3,3 +3,4 @@ versatrans_log.txt
 *.pem
 d118_students.csv
 d118_students.txt
+ruff.toml

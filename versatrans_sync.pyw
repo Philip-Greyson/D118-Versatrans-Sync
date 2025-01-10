@@ -4,6 +4,7 @@ https://github.com/Philip-Greyson/D118-Versatrans-Sync
 
 Needs oracledb: pip install oracledb --upgrade
 Needs pysftp: pip install pysftp --upgrade
+Needs beautifulsoup: pip install beautifulsoup4
 """
 
 # importing modules
@@ -72,6 +73,7 @@ def construct_header(existingHeader, newHeader, count=None) -> str:
     else:  # if the current header is empty, then just take the new header as the header
         header = newHeader
     return header
+
 if __name__ == '__main__':  # main file execution
     with open('versatrans_log.txt', 'w') as log:  # open logging file
         startTime = datetime.now()
@@ -250,29 +252,37 @@ if __name__ == '__main__':  # main file execution
                                         fiveOFour = fiveOFour.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
 
                                         # we have to do a lot of processing on the medical alerts section since it usually has HTML code to embed a link in the alert. We need to strip this out to just plain text
-
-                                        if '< ' in medical:  # weirdly, sometimes the html tags have a space in them, if so we need to fix it so beautiful soup can process it correctly
-                                            # print(medical, file=log)  # debug to see what it was at the start
-                                            pattern = r"(?<=<)[ ]"  # match the first space after a <
-                                            medical= re.sub(pattern, "", medical)  # replace the space with no space
-                                            # print(medical, file=log)  # debug to see what it was after removing spaces
-                                        
-                                        medicalParts = medical.split('<', 1)  # split the string into a max of 2 parts on the first <
-                                        if len(medicalParts) > 1:  # if we actually split the string, meaning we had a html <, process the html to get the link
-                                            try:
-                                                medicalInfo = medicalParts[0]
-                                                medicalParts[1] = '<' + medicalParts[1]  # add back in the < that was used as a delimiter
-                                                medicalSoup = BeautifulSoup(medicalParts[1], 'html.parser')  # make a beautiful soup object that will parse the html in the secont part of the medical alert
-                                                medicalText = medicalSoup.get_text()
-                                                medicalLink = medicalSoup.a.get('href')  # get the href link from the first a object
-                                                # medicalPlan = f'To access action plan please open the following link: {medicalLink}'
-                                                medical = f'{medicalInfo} - {medicalText} - {medicalLink}'
-                                                # print(medical)
-                                                # print(medical, file=log)
-                                            except Exception as er:
-                                                print(f'ERROR while trying to get medical action plan link for student {stuNum}: {er}')
-                                                print(f'ERROR while trying to get medical action plan link for student {stuNum}: {er}', file=log)
-                                                print(medicalParts, file=log)
+                                        try:
+                                            if '< ' in medical:  # weirdly, sometimes the html tags have a space in them, if so we need to fix it so beautiful soup can process it correctly
+                                                # print(medical, file=log)  # debug to see what it was at the start
+                                                pattern = r"(?<=<)[ ]"  # match the first space after a <
+                                                medical= re.sub(pattern, "", medical)  # replace the space with no space
+                                                # print(medical, file=log)  # debug to see what it was after removing spaces
+                                            
+                                            medicalParts = medical.split('<', 1)  # split the string into a max of 2 parts on the first <
+                                            if len(medicalParts) > 1:  # if we actually split the string, meaning we had a html <, process the html to get the link
+                                                try:
+                                                    medicalInfo = medicalParts[0]
+                                                    medicalParts[1] = '<' + medicalParts[1]  # add back in the < that was used as a delimiter
+                                                    medicalSoup = BeautifulSoup(medicalParts[1], 'html.parser')  # make a beautiful soup object that will parse the html in the secont part of the medical alert
+                                                    medicalText = medicalSoup.get_text()
+                                                    if medicalText:
+                                                        medicalLink = medicalSoup.a.get('href')  # get the href link from the first a object
+                                                        # medicalPlan = f'To access action plan please open the following link: {medicalLink}'
+                                                        medical = f'{medicalInfo} - {medicalText} - {medicalLink}'
+                                                        # print(medical)
+                                                        # print(medical, file=log)
+                                                    else:
+                                                        print(f'ERROR: Could not get text from HTML while parsing medical alert for student {stuNum}, check if they actually have a link')
+                                                        print(f'ERROR: Could not get text from HTML while parsing medical alert for student {stuNum}, check if they actually have a link', file=log)
+                                                        print(medicalParts, file=log)
+                                                except Exception as er:
+                                                    print(f'ERROR while trying to get medical action plan link for student {stuNum}: {er}')
+                                                    print(f'ERROR while trying to get medical action plan link for student {stuNum}: {er}', file=log)
+                                                    print(medicalParts, file=log)
+                                        except Exception as er:
+                                            print(f'ERROR while processing medical alert for student {stuNum}: {er}')
+                                            print(f'ERROR while processing medical alert for student {stuNum}: {er}', file=log)
 
                                         medical = medical.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         # print(medical, file=log)  # debug to see what the final medical output string is
