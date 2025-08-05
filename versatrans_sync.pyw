@@ -408,7 +408,7 @@ if __name__ == '__main__':  # main file execution
                                         authorizedNames = []
                                         authorizedPhones = []
                                         authorizedRelationships = []
-                                        baseQuery = 'SELECT ext.tran_adultsup#_name, ext.tran_adultsup#_phone, tran.adultsup#_relationship FROM u_def_ext_students0 ext LEFT JOIN u_student_transportation tran ON ext.studentsdcid = tran.studentsdcid WHERE ext.studentsdcid = :student'
+                                        baseQuery = 'SELECT ext.tran_adultsup#_name, ext.tran_adultsup#_phone, tran.adultsup#_relationship FROM u_def_ext_students0 ext LEFT JOIN u_student_transportation tran ON ext.studentsdcid = tran.studentsdcid WHERE ext.studentsdcid = :student' # create the base query that has # as a placeholder for the number, all fields need to be named the same except for that number.
                                         for i in range(1,AUTHORIZED_ADULTS_NUM+1):  # go through 1 to the max number of entries
                                             try:
                                                 numberedQuery = baseQuery.replace('#', f'{i}')
