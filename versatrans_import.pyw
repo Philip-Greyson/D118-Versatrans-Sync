@@ -21,7 +21,7 @@ DB_UN = os.environ.get('POWERSCHOOL_READ_USER')  # username for read-only databa
 DB_PW = os.environ.get('POWERSCHOOL_DB_PASSWORD')  # the password for the database account
 DB_CS = os.environ.get('POWERSCHOOL_PROD_DB')  # the IP address, port, and database name to connect to in format x.x.x.x:port/db
 
-CUSTOM_FIELD_NAMES = ['custom_pickupbus', 'custom_pickupdescription', 'custom_pickuptime', 'custom_returnbus', 'custom_returndescription', 'custom_returntime']  # what the filed names are in powerschool that correlate to the fields from the file
+CUSTOM_FIELD_NAMES = ['student_number', 'custom_pickupbus', 'custom_pickupdescription', 'custom_pickuptime', 'custom_returnbus', 'custom_returndescription', 'custom_returntime']  # what the field names are in powerschool that correlate to the fields from the file
 
 INPUT_FILE_NAME = 'routeImport.csv'  # what name the file will be pulled down via SFTP as
 DELIMITER_CHAR = ','  # character used for delimiting the fields. comma for .csv traditionally
@@ -31,7 +31,7 @@ print(f'DBUG: SFTP Username: {SFTP_UN} | SFTP Password: {SFTP_PW} | SFTP Server:
 
 if __name__ == '__main__': # main file execution
     with open('VtImportLog.txt', 'w') as log:
-        startTime = datetime.now()
+        startTime = datetime.datetime.now()
         startTime = startTime.strftime('%H:%M:%S')
         print(f'Execution started at {startTime}')
         print(f'Execution started at {startTime}', file=log)
@@ -76,29 +76,43 @@ if __name__ == '__main__': # main file execution
 
         with open(INPUT_FILE_NAME) as inFile:
             ps = acme_powerschool.api('d118-powerschool.info', client_id=D118_API_ID, client_secret=D118_API_SECRET) # create ps object via the API to do requests on
-            result = ps.post('ws/v1/student?extensions=u_studentsuserfields', data=json.dumps({'students' : {'student' : [{'@extensions': 'u_studentsuserfields', 'id': '49311', 'client_uid': '49311', 'action': 'UPDATE', '_extension_data': {'_table_extension': [{'name': 'u_studentsuserfields', '_field': [{'name': 'custom_pickupbus', 'value': 'TEST 3'}]}]}}]}}))
-            print(json.dumps(result.json(), indent=4))
-            print(result)
-            print(str(result))
-            print(str(result) == '<Response [200]>')
-            # for lineNum, line in enumerate(inFile.readlines()):  # go through each line
-            #     if lineNum > 0:  # skip the first header line as its not relevant
-            #         entry = line.strip().split(DELIMITER_CHAR)  # split each line by the delimiter after stripping off special characters
-            #         stuNum = int(entry[0])  # get the student number from the first column of the input file
-            #         stuDCID = dcidDict.get(stuNum)  # get the corresponding DCID for the student number
-                    # try:
-                    #     # result = ps.post('ws/v1/student?extensions=u_studentsuserfields', data=json.dumps({'students' : {'student' : [{'@extensions': 'u_studentsuserfields', 'id': str(stuDCID), 'client_uid': str(dcid), 'action': 'UPDATE', '_extension_data': {'_table_extension': [{'name': 'u_studentsuserfields', '_field': [{'name': 'custom_pickupbus', 'value': 'TEST'}]}]}}]}}))
-                    #     # response = ps.get(f'ws/v1/student/{stuDCID}?extensions=u_studentsuserfields') # get the student info for the current DCID, with the contact info expansion which contains the student email
-                    #     # info = response.json().get('student').get('_extension_data').get('_table_extension').get('_field') # get the table extension fields. If there is no data in the fields, its just not returned
-                    #     # print(type(info))
-                    #     # print(info)
-                    #     # print(info, file=log)
-                    #     # if type(info) is list:
-                    #     #     for entry in info:
-                    #     #         fieldName = entry.get('name')
-                    #     #         if fieldName in CUSTOM_FIELD_NAMES:
-                    #     #             fieldValue = entry.get('value')
-                    #     #             print(fieldName)
-                    #     #             print(fieldValue)
-                    # except Exception as er:
-                    #     print(er)
+            # result = ps.post('ws/v1/student?extensions=u_studentsuserfields', data=json.dumps({'students' : {'student' : [{'@extensions': 'u_studentsuserfields', 'id': '49311', 'client_uid': '49311', 'action': 'UPDATE', '_extension_data': {'_table_extension': [{'name': 'u_studentsuserfields', '_field': [{'name': 'custom_pickupbus', 'value': ''}]}]}}]}}))  # just a test update
+            # print(json.dumps(result.json(), indent=4))
+            # print(result)
+            # print(str(result))
+            # print(str(result) == '<Response [200]>')
+            for lineNum, line in enumerate(inFile.readlines()):  # go through each line
+                if lineNum > 0:  # skip the first header line as its not relevant
+                    try:
+                        entry = line.strip().split(DELIMITER_CHAR)  # split each line by the delimiter after stripping off special characters
+                        stuNum = int(entry[0])  # get the student number from the first column of the input file
+                        stuDCID = dcidDict.get(stuNum, None)  # get the corresponding DCID for the student number, return None if we didnt find that student in PS
+                        if stuDCID:  # only try to process student numbers we got DCIDs for
+                            try:
+                                for i in range(1,len(CUSTOM_FIELD_NAMES)):  # go through each field, skipping over the first column which is student number
+                                    print(f'DBUG: Updating student number {stuNum}-{stuDCID} with field {CUSTOM_FIELD_NAMES[i]} and value {entry[i]}')
+                                    print(f'DBUG: Updating student number {stuNum}-{stuDCID} with field {CUSTOM_FIELD_NAMES[i]} and value {entry[i]}', file=log)
+                                    result = ps.post('ws/v1/student?extensions=u_studentsuserfields', data=json.dumps({'students' : {'student' : [{'@extensions': 'u_studentsuserfields', 'id': str(stuDCID), 'client_uid': str(dcid), 'action': 'UPDATE', '_extension_data': {'_table_extension': [{'name': 'u_studentsuserfields', '_field': [{'name': CUSTOM_FIELD_NAMES[i], 'value': entry[i]}]}]}}]}}))
+                                    if str(result) != '<Response [200]>':
+                                        print(f'ERROR: {json.dumps(result.json(), indent=2)}')
+                                        print(f'ERROR: {json.dumps(result.json(), indent=2)}', file=log)
+                                    # response = ps.get(f'ws/v1/student/{stuDCID}?extensions=u_studentsuserfields') # get the student info for the current DCID, with the contact info expansion which contains the student email
+                                    # info = response.json().get('student').get('_extension_data').get('_table_extension').get('_field') # get the table extension fields. If there is no data in the fields, its just not returned
+                                    # print(type(info))
+                                    # print(info)
+                                    # print(info, file=log)
+                                    # if type(info) is list:
+                                    #     for entry in info:
+                                    #         fieldName = entry.get('name')
+                                    #         if fieldName in CUSTOM_FIELD_NAMES:
+                                    #             fieldValue = entry.get('value')
+                                    #             print(fieldName)
+                                    #             print(fieldValue)
+                            except Exception as er:
+                                print(er)
+                    except Exception as er:
+                        print(er)
+        endTime = datetime.datetime.now()
+        endTime = endTime.strftime('%H:%M:%S')
+        print(f'Execution ended at {endTime}')
+        print(f'Execution ended at {endTime}', file=log)
