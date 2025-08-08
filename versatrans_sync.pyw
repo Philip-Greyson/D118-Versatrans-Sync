@@ -10,12 +10,12 @@ Needs beautifulsoup: pip install beautifulsoup4
 # importing modules
 import datetime  # used to get current date for course info
 import os  # needed to get environement variables
-from datetime import *
 import re
+from datetime import *
 
-from bs4 import BeautifulSoup
 import oracledb  # used to connect to PowerSchool database
 import pysftp  # used to connect to the Versatrans SFTP server and upload the file
+from bs4 import BeautifulSoup
 
 DB_UN = os.environ.get('POWERSCHOOL_READ_USER')  # username for read-only database user
 DB_PW = os.environ.get('POWERSCHOOL_DB_PASSWORD')  # the password for the database account
@@ -59,19 +59,19 @@ ACCOMODATIONS_HEADER = 'Special Instructions\tSpecial Transportation Info\tNo Ad
 AM_COURSES = ['WEEAM', 'ECHAM', 'HRKA']
 PM_COURSES = ['WEEPM', 'ECHPM', 'HRKP']
 
-def construct_header(existingHeader, newHeader, count=None) -> str:
+def construct_header(existing_header: str, new_header: str, count: int | None=None) -> str:
     """Helper function to make a header string with variable amounts of entries."""
     if count:
-        tempHeader = ''
+        temp_header = ''
         for i in range(1,7):
-            numHeader = newHeader.replace('#', f'#{i}')  # replace the empty number signs with the numerical counter
-            tempHeader = tempHeader + numHeader + '\t'  # add on the numbered header to a temp header string
-        newHeader = tempHeader[:len(tempHeader)-1]  # replace the initial newHeader with the fully replaced numerical header, taking off the last character which is an extra \t
+            num_header = new_header.replace('#', f'#{i}')  # replace the empty number signs with the numerical counter
+            temp_header = temp_header + num_header + '\t'  # add on the numbered header to a temp header string
+        new_header = temp_header[:len(temp_header)-1]  # replace the initial newHeader with the fully replaced numerical header, taking off the last character which is an extra \t
     # if there was no count, just add the passed string to the existing one, otherwise the newHeader will have the numerical header in it to be added on
-    if existingHeader != '':  # if the existing header is not empty
-        header = f'{existingHeader}\t{newHeader}'  # add the new header to the existing one with a tab delimiter between
+    if existing_header != '':  # if the existing header is not empty
+        header = f'{existing_header}\t{new_header}'  # add the new header to the existing one with a tab delimiter between
     else:  # if the current header is empty, then just take the new header as the header
-        header = newHeader
+        header = new_header
     return header
 
 if __name__ == '__main__':  # main file execution
@@ -103,7 +103,7 @@ if __name__ == '__main__':  # main file execution
                         students = cur.fetchall()
                         for student in students:
                             try:
-                                finalOutputString = None # string to store the final output for each student
+                                finalOutputString = None  # string to store the final output for each student
                                 stuDCID = student[0]
                                 stuID = student[1]
                                 stuNum = str(int(student[2]))
@@ -182,7 +182,7 @@ if __name__ == '__main__':  # main file execution
                                     pickupOutputString = f'{pickupAddress}\t{pickupCity}\t{pickupState}\t{pickupZip}\t{dropoffAddress}\t{dropoffCity}\t{dropoffState}\t{dropoffZip}'
                                     if finalOutputString:  # if there is already something in the final output, append this section
                                         finalOutputString = f'{finalOutputString}\t{pickupOutputString}'
-                                    else: # if there is no output yet, just set the final output to this sections output
+                                    else:  # if there is no output yet, just set the final output to this sections output
                                         finalOutputString = pickupOutputString
                                 if DO_ACCOMODATIONS:
                                     try:
@@ -247,7 +247,7 @@ if __name__ == '__main__':  # main file execution
                                         specialInstructions = specialInstructions.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')  # replace any LF or CRLF line breaks with a semicolon, replace any tabs with a space, double quotes with single
                                         specialInfo = specialInfo.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         divorce = divorce.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
-                                        iep = iep.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')                               
+                                        iep = iep.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         bip = bip.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
                                         fiveOFour = fiveOFour.replace('\r\n', ';').replace('\n', ';').replace('\t', '').replace('"', '\'')
 
@@ -258,7 +258,7 @@ if __name__ == '__main__':  # main file execution
                                                 pattern = r"(?<=<)[ ]"  # match the first space after a <
                                                 medical= re.sub(pattern, "", medical)  # replace the space with no space
                                                 # print(medical, file=log)  # debug to see what it was after removing spaces
-                                            
+
                                             medicalParts = medical.split('<', 1)  # split the string into a max of 2 parts on the first <
                                             if len(medicalParts) > 1:  # if we actually split the string, meaning we had a html <, process the html to get the link
                                                 try:
@@ -291,7 +291,7 @@ if __name__ == '__main__':  # main file execution
                                         # print(accomodationOutputString)  # debug
                                         if finalOutputString:  # if there is already something in the final output, append this section
                                             finalOutputString = f'{finalOutputString}\t{accomodationOutputString}'
-                                        else: # if there is no output yet, just set the final output to this sections output
+                                        else:  # if there is no output yet, just set the final output to this sections output
                                             finalOutputString = accomodationOutputString
                                     except Exception as er:
                                         print(f'ERROR while getting accomodations for {stuNum}: {er}')
@@ -308,7 +308,7 @@ if __name__ == '__main__':  # main file execution
                                     fridayOutputString = f'{fridayAddress}\t{fridayCity}\t{fridayState}\t{fridayZip}\t{fridayName}\t{fridayPhone}'
                                     if finalOutputString:  # if there is already something in the final output, append this section
                                         finalOutputString = f'{finalOutputString}\t{fridayOutputString}'
-                                    else: # if there is no output yet, just set the final output to this sections output
+                                    else:  # if there is no output yet, just set the final output to this sections output
                                         finalOutputString = fridayOutputString
                                 if DO_EMERGENCY_CONTACTS:
                                     try:
@@ -336,7 +336,7 @@ if __name__ == '__main__':  # main file execution
                                                     contactRelationship = contacts[i][3] if (contacts[i][3] and contacts[i][3] != "Not Set") else ''  # if there is no relationship type output a blank
                                                     contactID = contacts[i][9]
                                                     phoneNum = None  # reset to null for each contact
-                                                    preferredPhone = False # flag to know if we have a preferred phone number stored
+                                                    preferredPhone = False  # flag to know if we have a preferred phone number stored
                                                     cur.execute('SELECT ph.phonenumberasentered, codeset.code, ph.ispreferred, ph.whencreated FROM personphonenumberassoc ph LEFT JOIN codeset ON ph.phonetypecodesetid = codeset.codesetid WHERE ph.personid = :person ORDER BY ph.ispreferred DESC, ph.whencreated', person=contactID)
                                                     phoneNums = cur.fetchall()
                                                     if(phoneNums):  # check if there are any phone numbers listed, some contacts may not have any
@@ -355,7 +355,7 @@ if __name__ == '__main__':  # main file execution
                                                                     elif isPreferred == 0 and phoneType != 'Mobile' and not phoneNum:  # if entry is not preferred or mobile, only use it if the current number is empty
                                                                         phoneNum = phoneNums[i][0]
                                                                         preferredPhone = False
-                                                                    elif isPreferred == 0 and phoneType == 'Mobile' and not preferredPhone: # if entry is mobile but not preferred, override a different non-preferred number
+                                                                    elif isPreferred == 0 and phoneType == 'Mobile' and not preferredPhone:  # if entry is mobile but not preferred, override a different non-preferred number
                                                                         phoneNum = phoneNums[i][0]
                                                                         preferredPhone = False
                                                                 if not phoneNum:  # if after we have gone through the entries we havent stored a number, something went wrong
@@ -388,7 +388,7 @@ if __name__ == '__main__':  # main file execution
                                                 # print(emergencyOutputString)  # debug
                                                 if finalOutputString:  # if there is already something in the final output, append this section
                                                     finalOutputString = f'{finalOutputString}\t{emergencyOutputString}'
-                                                else: # if there is no output yet, just set the final output to this sections output
+                                                else:  # if there is no output yet, just set the final output to this sections output
                                                     finalOutputString = emergencyOutputString
                                             except Exception as er:
                                                 print(f'ERROR while constructing output string for emergency contacts: {er}')
@@ -408,7 +408,7 @@ if __name__ == '__main__':  # main file execution
                                         authorizedNames = []
                                         authorizedPhones = []
                                         authorizedRelationships = []
-                                        baseQuery = 'SELECT ext.tran_adultsup#_name, ext.tran_adultsup#_phone, tran.adultsup#_relationship FROM u_def_ext_students0 ext LEFT JOIN u_student_transportation tran ON ext.studentsdcid = tran.studentsdcid WHERE ext.studentsdcid = :student' # create the base query that has # as a placeholder for the number, all fields need to be named the same except for that number.
+                                        baseQuery = 'SELECT ext.tran_adultsup#_name, ext.tran_adultsup#_phone, tran.adultsup#_relationship FROM u_def_ext_students0 ext LEFT JOIN u_student_transportation tran ON ext.studentsdcid = tran.studentsdcid WHERE ext.studentsdcid = :student'  # create the base query that has # as a placeholder for the number, all fields need to be named the same except for that number.
                                         for i in range(1,AUTHORIZED_ADULTS_NUM+1):  # go through 1 to the max number of entries
                                             try:
                                                 numberedQuery = baseQuery.replace('#', f'{i}')
@@ -424,7 +424,7 @@ if __name__ == '__main__':  # main file execution
                                                     authorizedPhone = ''
                                                     authorizedRelationship = ''
                                                 # add each name, phone, relationship into the relevant list
-                                                authorizedNames.append(authorizedName)  
+                                                authorizedNames.append(authorizedName)
                                                 authorizedPhones.append(authorizedPhone)
                                                 authorizedRelationships.append(authorizedRelationship)
                                             except Exception as er:
@@ -437,7 +437,7 @@ if __name__ == '__main__':  # main file execution
                                             authorizedOutputString = authorizedOutputString[:len(authorizedOutputString)-1]  # take the final output minus the final character that is an extra tab
                                             if finalOutputString:  # if there is already something in the final output, append this section
                                                 finalOutputString = f'{finalOutputString}\t{authorizedOutputString}'
-                                            else: # if there is no output yet, just set the final output to this sections output
+                                            else:  # if there is no output yet, just set the final output to this sections output
                                                 finalOutputString = authorizedOutputString
                                         except Exception as er:
                                             print(f'ERROR while constructing output string for authorized adults: {er}')
