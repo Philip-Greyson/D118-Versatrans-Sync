@@ -140,6 +140,9 @@ if __name__ == '__main__':  # main file execution
                         entry = line.strip().split(DELIMITER_CHAR)  # split each line by the delimiter after stripping off special characters
                         # print(entry)  # debug
                         if re.match(r'^\d+$',entry[0]):  # check to see if our first column is only numeric (which it should be as its student numbers)
+                            if (len(entry) > (len(CUSTOM_FIELD_NAMES)+1)):  # check if our input line has more than the normal amount of fields
+                                print(f'WARN: {entry[0]} in line {lineNum} has more than {len(CUSTOM_FIELD_NAMES)+1} fields in it, check for extra commas')
+                                print(f'WARN: {entry[0]} in line {lineNum} has more than {len(CUSTOM_FIELD_NAMES)+1} fields in it, check for extra commas', file=log)
                             stuNum = int(entry[0])  # get the student number from the first column of the input file
                             stuDCID = studentDict.get(stuNum, {}).get('dcid', None)  # get the corresponding DCID for the student number, return None if we didnt find that student in PS
                             # print(f'DBUG: Processing student {stuNum}-{stuDCID} and looking for any fields that need to be updated')
