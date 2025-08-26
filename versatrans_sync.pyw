@@ -237,7 +237,7 @@ if __name__ == '__main__':  # main file execution
                                             # print(f'DBUG: Only one set of accomodations entries found for {stuNum}', file=log)
                                             specialInstructions = str(entries[0][0]) if entries[0][0] else ''
                                             specialInfo = str(entries[0][1]) if entries[0][1] else ''
-                                            noAdult = 'Yes' if entries[0][2] == 1 else 'No'
+                                            noAdult = 'Y' if entries[0][2] == 1 else 'N'
                                             divorce = 'Yes' if entries[0][3] == 1 else 'No'
                                             iep = str(entries[0][4]) if entries[0][4] else ''
                                             bip = str(entries[0][5]) if entries[0][5] else ''
