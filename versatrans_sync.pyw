@@ -194,7 +194,7 @@ if __name__ == '__main__':  # main file execution
                                             lengthWithoutExpired = len(entries)  # variable to count how many actual entries we have if we ignore expired medical alerts
                                             specialInstructions = ''
                                             specialInfo = ''
-                                            noAdult = 'No'
+                                            noAdult = 'N'
                                             divorce = 'No'
                                             iep = ''
                                             bip = ''
@@ -207,7 +207,7 @@ if __name__ == '__main__':  # main file execution
                                                         continue  # skip the current entry so expired alerts are not added to the output
                                                 newSpecialInstructions = str(entries[i][0]) if entries[i][0] else ''
                                                 newSpecialInfo = str(entries[i][1]) if entries[i][1] else ''
-                                                newNoAdult = 'Yes' if entries[i][2] == 1 else 'No'
+                                                newNoAdult = 'Y' if entries[i][2] == 1 else 'N'
                                                 newDivorce = 'Yes' if entries[i][3] == 1 else 'No'
                                                 newIep = str(entries[i][4]) if entries[i][4] else ''
                                                 newBip = str(entries[i][5]) if entries[i][5] else ''
