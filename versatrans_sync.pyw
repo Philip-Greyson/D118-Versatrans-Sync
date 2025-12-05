@@ -333,6 +333,7 @@ if __name__ == '__main__':  # main file execution
                                                 try:
                                                     # print(contacts[i])  # debug
                                                     contactName = f'{contacts[i][1]} {contacts[i][2]}' if (contacts[i][1] or contacts[i][2]) else ''  # if there is no name in either first or last just output a blank
+                                                    contactName = contactName.replace('"', '')  # strip out quotes in the names... ugh
                                                     contactRelationship = contacts[i][3] if (contacts[i][3] and contacts[i][3] != "Not Set") else ''  # if there is no relationship type output a blank
                                                     contactID = contacts[i][9]
                                                     phoneNum = None  # reset to null for each contact
