@@ -190,6 +190,10 @@ if __name__ == '__main__':  # main file execution
                                         print(f'DBUG: Starting Accomodations section for student {stuNum}, DCID {stuDCID}', file=log)
                                         cur.execute('SELECT suf.custom_specialinstructions, suf.custom_special_trans, ext.tran_noadultsupervision, ext.tran_divorceaccomodations, ext.customalertiep, ext.customalertbip, suf.c_504_description, alert.mba_alert, alert.expiration FROM u_studentsuserfields suf LEFT JOIN u_def_ext_students0 ext ON suf.studentsdcid = ext.studentsdcid LEFT JOIN u_aet_customalerts alert ON suf.studentsdcid = alert.studentsdcid AND alert.u_aet_customalerts_typesid = 1161 WHERE suf.studentsdcid = :student', student=stuDCID)
                                         entries = cur.fetchall()
+                                        # print(entries, file=log)  # debug
+                                        if not entries:
+                                            print("ERROR: No entries found for accomodations, check their student user fields table has an entry for their DCID")
+                                            print("ERROR: No entries found for accomodations, check their student user fields table has an entry for their DCID", file=log)
                                         if len(entries) > 1:
                                             lengthWithoutExpired = len(entries)  # variable to count how many actual entries we have if we ignore expired medical alerts
                                             specialInstructions = ''
@@ -289,13 +293,14 @@ if __name__ == '__main__':  # main file execution
 
                                         accomodationOutputString = f'"{specialInstructions}"\t"{specialInfo}"\t{noAdult}\t{divorce}\t"{iep}"\t"{bip}"\t"{fiveOFour}"\t"{medical}"'
                                         # print(accomodationOutputString)  # debug
+                                        # print(accomodationOutputString, file=log)  # debug
                                         if finalOutputString:  # if there is already something in the final output, append this section
                                             finalOutputString = f'{finalOutputString}\t{accomodationOutputString}'
                                         else:  # if there is no output yet, just set the final output to this sections output
                                             finalOutputString = accomodationOutputString
                                     except Exception as er:
-                                        print(f'ERROR while getting accomodations for {stuNum}: {er}')
-                                        print(f'ERROR while getting accomodations for {stuNum}: {er}', file=log)
+                                        print(f'ERROR while getting accomodations for {stuNum}: {er} | Database entries: {entries}')
+                                        print(f'ERROR while getting accomodations for {stuNum}: {er} | Database entries: {entries}', file=log)
                                 if DO_FRIDAY_CHILDCARE:
                                     print(f'DBUG: Starting Friday Childcare section for student {stuNum}, DCID {stuDCID}')
                                     print(f'DBUG: Starting Friday Childcare section for student {stuNum}, DCID {stuDCID}', file=log)
