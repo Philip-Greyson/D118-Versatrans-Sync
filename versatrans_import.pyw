@@ -37,6 +37,9 @@ CUSTOM_TABLE_NAME = 'u_studentsuserfields'  # the table name the custom fields a
 INPUT_FILE_NAME = 'routeImport.csv'  # what name the file will be pulled down via SFTP as
 DELIMITER_CHAR = ','  # character used for delimiting the fields. comma for .csv traditionally
 
+# EXCLUDED_STUDENT_NUMS = [228289, 229489, 230592, 227483, 226415, 229589, 227079, 228155, 229769]
+EXCLUDED_STUDENT_NUMS = []
+
 print(f'DBUG: DB Username: {DB_UN} | DB Password: {DB_PW} | DB Server: {DB_CS}')  # debug so we can see where oracle is trying to connect to/with
 print(f'DBUG: SFTP Username: {SFTP_UN} | SFTP Password: {SFTP_PW} | SFTP Server: {SFTP_HOST}')  # debug so we can see what info sftp connection is using
 
@@ -101,8 +104,8 @@ if __name__ == '__main__':  # main file execution
                 if latestFile is not None:
                     sftp.get(latestFile, INPUT_FILE_NAME)  # pull down the file and save it as whatever is defined by the constant
                 # sftp.put(OUTPUT_FILENAME)  # upload the first file onto the sftp server
-                print("INFO: Student file retrieved from remote server")
-                print("INFO: Student file retrieved from remote server", file=log)
+                print(f"INFO: Student file retrieved from remote server - {latestFile}")
+                print(f"INFO: Student file retrieved from remote server - {latestFile}", file=log)
         except Exception as er:
             print(f'ERROR while connecting via SFTP or putting file on server: {er}')
             print(f'ERROR while connecting via SFTP or putting file on server: {er}', file=log)
@@ -146,21 +149,25 @@ if __name__ == '__main__':  # main file execution
                             stuNum = int(entry[0])  # get the student number from the first column of the input file
                             stuDCID = studentDict.get(stuNum, {}).get('dcid', None)  # get the corresponding DCID for the student number, return None if we didnt find that student in PS
                             # print(f'DBUG: Processing student {stuNum}-{stuDCID} and looking for any fields that need to be updated')
-                            if stuDCID:  # only try to process student numbers we got DCIDs for
-                                try:
-                                    for i in range(0,len(CUSTOM_FIELD_NAMES)):  # go through each field
-                                        currentValue = studentDict.get(stuNum).get(CUSTOM_FIELD_NAMES[i])  # get the current value of the field in PS from the studentDict
-                                        currentValue = '' if currentValue is None else currentValue  # if what we got back from PS is the literal None, we want to interpret that as a blank since thats what the csv parsing will give
-                                        newValue = entry[i+1].strip()  # get the new value that it should be from the file, but note that the file includes the student number as the first column so we need to add 1 to our iterable
-                                        if currentValue != newValue:
-                                            print(f'INFO: Updating student number {stuNum}-DCID {stuDCID} field {CUSTOM_FIELD_NAMES[i]} from "{currentValue}" to new value "{newValue}"')
-                                            print(f'INFO: Updating student number {stuNum}-DCID {stuDCID} field {CUSTOM_FIELD_NAMES[i]} from "{currentValue}" to new value "{newValue}"', file=log)
-                                            ps_update_custom_field(CUSTOM_TABLE_NAME, CUSTOM_FIELD_NAMES[i], stuDCID, newValue)  # call the helper function to update the field via API
-                                        # else:
-                                        #     print(f'DBUG: No change needed for field {CUSTOM_FIELD_NAMES[i]} for {stuNum} | Current: "{currentValue}" - New: "{newValue}"')
-                                except Exception as er:
-                                    print(f'ERROR while processing student {stuNum} and field {CUSTOM_FIELD_NAMES[i]}: {er}')
-                                    print(f'ERROR while processing student {stuNum} and field {CUSTOM_FIELD_NAMES[i]}: {er}', file=log)
+                            if stuNum not in EXCLUDED_STUDENT_NUMS:
+                                if stuDCID:  # only try to process student numbers we got DCIDs for
+                                    try:
+                                        for i in range(0,len(CUSTOM_FIELD_NAMES)):  # go through each field
+                                            currentValue = studentDict.get(stuNum).get(CUSTOM_FIELD_NAMES[i])  # get the current value of the field in PS from the studentDict
+                                            currentValue = '' if currentValue is None else currentValue  # if what we got back from PS is the literal None, we want to interpret that as a blank since thats what the csv parsing will give
+                                            newValue = entry[i+1].strip()  # get the new value that it should be from the file, but note that the file includes the student number as the first column so we need to add 1 to our iterable
+                                            if currentValue != newValue:
+                                                print(f'INFO: Updating student number {stuNum}-DCID {stuDCID} field {CUSTOM_FIELD_NAMES[i]} from "{currentValue}" to new value "{newValue}"')
+                                                print(f'INFO: Updating student number {stuNum}-DCID {stuDCID} field {CUSTOM_FIELD_NAMES[i]} from "{currentValue}" to new value "{newValue}"', file=log)
+                                                ps_update_custom_field(CUSTOM_TABLE_NAME, CUSTOM_FIELD_NAMES[i], stuDCID, newValue)  # call the helper function to update the field via API
+                                            # else:
+                                            #     print(f'DBUG: No change needed for field {CUSTOM_FIELD_NAMES[i]} for {stuNum} | Current: "{currentValue}" - New: "{newValue}"')
+                                    except Exception as er:
+                                        print(f'ERROR while processing student {stuNum} and field {CUSTOM_FIELD_NAMES[i]}: {er}')
+                                        print(f'ERROR while processing student {stuNum} and field {CUSTOM_FIELD_NAMES[i]}: {er}', file=log)
+                            else:
+                                print(f'WARN: Found skipped student number: {stuNum}')
+                                print(f'WARN: Found skipped student number: {stuNum}', file=log)
                         else:
                             print(f'WARN: Found a non-numeric entry where the student number should be: {entry[0]}')
                             print(f'WARN: Found a non-numeric entry where the student number should be: {entry[0]}', file=log)
